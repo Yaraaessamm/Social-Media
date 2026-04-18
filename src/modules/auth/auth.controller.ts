@@ -1,0 +1,53 @@
+import { Router } from "express";
+import AuthService from "./auth.service";
+import * as AuthValidation from "./auth.validation";
+import { validation } from "../../common/middleware/validation";
+import { authentication } from "../../common/middleware/authentication";
+
+const authRouter = Router();
+
+authRouter.post(
+  "/signup",
+  validation(AuthValidation.signUpSchema),
+  AuthService.signUp,
+);
+
+
+authRouter.post(
+  "/verify-email",
+  validation(AuthValidation.confirmEmailSchema),
+  AuthService.confirmEmail,
+);
+
+
+authRouter.post(
+  "/login",
+  validation(AuthValidation.loginSchema),
+  AuthService.login,
+);
+
+
+authRouter.patch(
+  "/forget-password",
+  validation(AuthValidation.emailSchema),
+  AuthService.forgetPassword,
+);
+
+
+authRouter.patch(
+  "/reset-password",
+  validation(AuthValidation.resetPasswordSchema),
+  AuthService.resetPassword,
+
+);
+
+
+authRouter.patch(
+  "/update-password",
+  authentication,
+  validation(AuthValidation.updatePasswordSchema),
+  AuthService.updatePassword,
+);
+
+
+export default authRouter;
