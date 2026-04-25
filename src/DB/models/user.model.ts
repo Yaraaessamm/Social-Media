@@ -1,5 +1,9 @@
 import mongoose, { Types } from "mongoose";
-import { GenderEnum, RoleEnum } from "../../common/enum/user.enum";
+import {
+  GenderEnum,
+  ProviderEnum,
+  RoleEnum,
+} from "../../common/enum/user.enum";
 
 export interface IUser {
   _id: Types.ObjectId;
@@ -13,6 +17,7 @@ export interface IUser {
   address?: string;
   gender?: GenderEnum;
   role?: RoleEnum;
+  provider?: ProviderEnum;
   confirmed: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -42,10 +47,10 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     password: {
       type: String,
-      required: true,
+      required: function (): boolean {
+        return this.provider == ProviderEnum.google ? false : true;
+      },
       trim: true,
-      min: 3,
-      max: 25,
     },
     age: {
       type: Number,
@@ -72,6 +77,11 @@ const userSchema = new mongoose.Schema<IUser>(
       enum: RoleEnum,
       default: RoleEnum.user,
     },
+    provider: {
+      type: String,
+      enum: ProviderEnum,
+      default: ProviderEnum.system,
+    },
     confirmed: Boolean,
   },
   {
@@ -88,7 +98,7 @@ userSchema
     return this.firstName + " " + this.lastName;
   })
   .set(function (val: string) {
-    this.set({firstName: val.split(" ")[0],lastName: val.split(" ")[1]});
+    this.set({ firstName: val.split(" ")[0], lastName: val.split(" ")[1] });
   });
 
 const userModel =

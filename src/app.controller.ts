@@ -10,12 +10,12 @@ import {
 } from "./common/utils/general-error-handler";
 import authRouter from "./modules/auth/auth.controller";
 import { checkConnectionDB } from "./DB/connectionDB";
-import { redisConnection } from "./DB/redisDB";
+import redisService from "./common/service/redis.service";
 
 const app: express.Application = express();
 const port: number = Number(PORT);
 
-const bootstrap = () => {
+const bootstrap = async () => {
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
@@ -26,15 +26,15 @@ const bootstrap = () => {
   app.use(cors(), helmet(), limiter, express.json());
 
   checkConnectionDB();
-  redisConnection()
+  await redisService.connect();
 
   app.get("/", (req: Request, res: Response, next: NextFunction) =>
     res
       .status(200)
-      .json({ message: `Welcome on Social Media App ...........` }),
+      .json({ message: `Welcome on Social Media App ` }),
   );
 
-  app.use("/auth", authRouter)
+  app.use("/auth", authRouter);
 
   app.use("{/*demo}", (req: Request, res: Response, next: NextFunction) => {
     throw new AppError(

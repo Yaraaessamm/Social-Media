@@ -13,3 +13,5 @@ export const REDIS_URL: string  = process.env.REDIS_URL!;
 export const ACCESS_SECRET_KEY: string  = process.env.ACCESS_SECRET_KEY!;
 export const REFRESH_SECRET_KEY: string  = process.env.REFRESH_SECRET_KEY!;
 export const PREFIX: string  = process.env.PREFIX!;
+export const SECRET_KEY: string  = process.env.SECRET_KEY!;
+export const CLIENT_ID: string  = process.env.CLIENT_ID!;
