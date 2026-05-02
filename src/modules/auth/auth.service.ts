@@ -27,9 +27,11 @@ import { randomUUID } from "crypto";
 import { successResponse } from "../../common/utils/response.success";
 import { ProviderEnum } from "../../common/enum/user.enum";
 import redisService from "../../common/service/redis.service";
+import { S3Service } from "../../common/service/s3.service";
 
 class UserService {
   private readonly _userModel = new UserRepository();
+  private readonly _s3Service = new S3Service();
   private readonly _redisService = redisService;
 
   constructor() {}
@@ -65,6 +67,7 @@ class UserService {
     });
   };
 
+  
   signUp = async (req: Request, res: Response, next: NextFunction) => {
     const {
       firstName,
@@ -96,6 +99,7 @@ class UserService {
       .json({ message: "User signed up successfully.", data: user });
   };
 
+ 
   signUpWithGoogle = async (
     req: Request,
     res: Response,
@@ -136,6 +140,7 @@ class UserService {
       data: { access_token },
     });
   };
+
 
   confirmEmail = async (req: Request, res: Response, next: NextFunction) => {
     const { email, otp }: ConfirmEmailDTO = req.body;
@@ -184,7 +189,6 @@ class UserService {
     });
   };
 
- 
   login = async (req: Request, res: Response, next: NextFunction) => {
     const { email, password }: SignInDTO = req.body;
 
@@ -217,6 +221,7 @@ class UserService {
       data: { access_token, refresh_token },
     });
   };
+
 
   forgetPassword = async (req: Request, res: Response, next: NextFunction) => {
     const { email }: ResendOtpDTO = req.body;
@@ -293,6 +298,24 @@ class UserService {
       },
     });
     successResponse({ res, message: "Password has been reset successfully" });
+  };
+
+ 
+  uploadImage = async (req: Request, res: Response, next: NextFunction) => {
+
+
+
+    const { fileName, ContentType } = req.body;
+    const { url, Key } = await this._s3Service.createPreSignedUrl({
+      fileName,
+      ContentType,
+      path: `users/${req?.user?._id}`,
+    });
+    await this._userModel.findOneAndUpdate({
+      filter: { _id: req?.user?._id },
+      update: { profilePic: Key },
+    });
+    successResponse({ res, data: { Key, url } });
   };
 }
 

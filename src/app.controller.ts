@@ -4,6 +4,10 @@ import cors from "cors";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { PORT } from "./config/config.service";
+import userModel from "./DB/models/user.model";
+import { S3Service } from "./common/service/s3.service";
+import { successResponse } from "./common/utils/response.success";
+import { pipeline } from "node:stream/promises";
 import {
   AppError,
   globalErrorHandler,
@@ -32,6 +36,19 @@ const bootstrap = async () => {
     res
       .status(200)
       .json({ message: `Welcome on Social Media App ` }),
+  );
+
+    app.get(
+    "/upload/*path",
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { path } = req.params as { path: string[] };
+      const Key = path.join("/");
+      const result = await new S3Service().getFile(Key);
+      const stream = result.Body as NodeJS.ReadableStream;
+      res.setHeader("Content-Type", result.ContentType!)
+      await pipeline(stream, res)
+      successResponse({ res, data: result });
+    },
   );
 
   app.use("/auth", authRouter);

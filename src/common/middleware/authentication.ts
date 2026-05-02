@@ -15,15 +15,12 @@ export const authentication = async (req: Request, res: Response, next: NextFunc
   if (prefix !== PREFIX) throw new AppError("Unauthorized: invalid token type", 401);
   if (!token) throw new AppError("Unauthorized: token missing", 401);
 
-
   const decoded = VerifyToken({ token, secret_key: ACCESS_SECRET_KEY });
   if (!decoded || !decoded?.id) throw new AppError("Unauthorized: Invalid token", 401);
-
-
+ 
   const user = await _userModel.findById(decoded.id);
   if (!user) throw new AppError("User not found", 401);
 
-  
   req.user = user;
   req.decoded = decoded;
   next();
