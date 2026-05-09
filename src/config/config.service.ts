@@ -19,3 +19,4 @@ export const AWS_RESGIN: string  = process.env.AWS_RESGIN!;
 export const AWS_BUCKET_NAME: string  = process.env.AWS_BUCKET_NAME!;
 export const AWS_ACCESS_KEY: string  = process.env.AWS_ACCESS_KEY!;
 export const AWS_SECRET_ACCESS_KEY: string  = process.env.AWS_SECRET_ACCESS_KEY!;
+export const FIREBASE_SERVICE_ACCOUNT: string  = process.env.FIREBASE_SERVICE_ACCOUNT!;

@@ -28,11 +28,13 @@ import { successResponse } from "../../common/utils/response.success";
 import { ProviderEnum } from "../../common/enum/user.enum";
 import redisService from "../../common/service/redis.service";
 import { S3Service } from "../../common/service/s3.service";
+import notificationService from "../../common/service/notification.service";
 
 class UserService {
   private readonly _userModel = new UserRepository();
   private readonly _s3Service = new S3Service();
   private readonly _redisService = redisService;
+  private readonly _notificationService = notificationService;
 
   constructor() {}
 
@@ -190,7 +192,7 @@ class UserService {
   };
 
   login = async (req: Request, res: Response, next: NextFunction) => {
-    const { email, password }: SignInDTO = req.body;
+    const { email, password, fcm }: SignInDTO = req.body;
 
     const userExist = await this._userModel.findOne({ filter: { email } });
     if (!userExist) throw new AppError("User not exists", 409);
@@ -215,6 +217,14 @@ class UserService {
       secret_key: REFRESH_SECRET_KEY,
       options: { expiresIn: "1y", jwtid },
     });
+       if (fcm) {
+      await this._redisService.addFCM({ userId: userExist._id, FCMToken: fcm });
+      const tokens = await this._redisService.getFCM(userExist._id);
+      await this._notificationService.sendNotifications({
+        tokens: tokens!,
+        data: {title: `hi ${userExist.firstName}`, body: `new login at ${ new Date()}`}
+      })
+    }
     successResponse({
       res,
       message: "Login Successfully...",

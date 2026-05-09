@@ -1,5 +1,8 @@
 import {
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
   ObjectCannedACL,
   PutObjectCommand,
   S3Client,
@@ -134,12 +137,40 @@ export class S3Service {
     const url = await getSignedUrl(this.client, command, { expiresIn });
     return { url, Key };
   }
-
-  async getFile(Key: string) {
-    const command = new GetObjectCommand({
+  async getFiles(folderName: string) {
+    const command = new ListObjectsV2Command({
+      Bucket: AWS_BUCKET_NAME,
+      Prefix: `social_media_app/${folderName}`,
+    });
+    return await this.client.send(command);
+  }
+ 
+  async deleteFile(Key: string) {
+    const command = new DeleteObjectCommand({
       Bucket: AWS_BUCKET_NAME,
       Key,
     });
     return await this.client.send(command);
+  }
+
+  async deleteFiles(Keys: string[]) {
+    const keyMapped = Keys.map((Key) => {
+      return { Key };
+    });
+    const command = new DeleteObjectsCommand({
+      Bucket: AWS_BUCKET_NAME,
+      Delete: { Objects: keyMapped, Quiet: false },
+    });
+    return await this.client.send(command);
+  }
+  // -------------------------------------------
+  //  Delete Folder
+  // -------------------------------------------
+  async deleteFolder(folderName: string) {
+    const data = await this.getFiles(folderName);
+    const keyMapped = data?.Contents?.map((Key) => {
+      return Key.Key!;
+    });
+    return await this.deleteFiles(keyMapped as string[]);
   }
 }

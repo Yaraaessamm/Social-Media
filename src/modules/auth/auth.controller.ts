@@ -57,7 +57,7 @@ authRouter.patch(
 
 authRouter.post(
   "/upload",
-
+    multerCloud({ store_type: Store_Enum.disk }).array ("attachment"),
   AuthService.uploadImage,
 );
 
