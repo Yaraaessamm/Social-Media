@@ -1,4 +1,4 @@
-import { HydratedDocument } from "mongoose";
+import { HydratedDocument, Types } from "mongoose";
 import type { Request, Response, NextFunction } from "express";
 import { type IUser } from "../../DB/models/user.model";
 import {
@@ -15,10 +15,10 @@ import { generateOTP, sendEmail } from "../../common/utils/email/send.email";
 import { emailTemplate } from "../../common/utils/email/email.template";
 import { EmailEnum } from "../../common/enum/email.enum";
 import { eventEmitter } from "../../common/utils/email/email.events";
-import { GenerateToken } from "../../common/utils/token.service";
+import { GenerateToken } from "../../common/service/token.service";
 import { OAuth2Client, TokenPayload } from "google-auth-library";
 import {
-  ACCESS_SECRET_KEY,
+  ACCESS_SECRET_KEY_USER,
   CLIENT_ID,
   REFRESH_SECRET_KEY,
   SECRET_KEY,
@@ -37,7 +37,9 @@ class UserService {
   private readonly _notificationService = notificationService;
 
   constructor() {}
-
+  // -------------------------------------------------------------
+  // General Function
+  // -------------------------------------------------------------
   sendEmailOtp = async ({
     email,
     userName,
@@ -69,7 +71,9 @@ class UserService {
     });
   };
 
-  
+  // -------------------------------------------------------------
+  // Sign Up
+  // -------------------------------------------------------------
   signUp = async (req: Request, res: Response, next: NextFunction) => {
     const {
       firstName,
@@ -101,7 +105,9 @@ class UserService {
       .json({ message: "User signed up successfully.", data: user });
   };
 
- 
+  // -------------------------------------------------------------
+  // Sign Up With Google
+  // -------------------------------------------------------------
   signUpWithGoogle = async (
     req: Request,
     res: Response,
@@ -143,7 +149,9 @@ class UserService {
     });
   };
 
-
+  // -------------------------------------------------------------
+  // Confirm Email
+  // -------------------------------------------------------------
   confirmEmail = async (req: Request, res: Response, next: NextFunction) => {
     const { email, otp }: ConfirmEmailDTO = req.body;
 
@@ -191,6 +199,9 @@ class UserService {
     });
   };
 
+  // -------------------------------------------------------------
+  // Login
+  // -------------------------------------------------------------
   login = async (req: Request, res: Response, next: NextFunction) => {
     const { email, password, fcm }: SignInDTO = req.body;
 
@@ -205,25 +216,29 @@ class UserService {
     }
     if (!Compare({ plainText: password, cipherText: userExist.password }))
       throw new Error("Invalid password");
-
+    // Generate Token ----------->
     const jwtid = randomUUID();
     const access_token = GenerateToken({
       payload: { id: userExist._id, email },
-      secret_key: ACCESS_SECRET_KEY,
-      options: { expiresIn: 60 * 3, jwtid },
+      secret_key: ACCESS_SECRET_KEY_USER,
+      options: { expiresIn: 60 * 15, jwtid },
     });
     const refresh_token = GenerateToken({
       payload: { id: userExist._id, email },
       secret_key: REFRESH_SECRET_KEY,
       options: { expiresIn: "1y", jwtid },
     });
-       if (fcm) {
+    // FCM token handling ----------->
+    if (fcm) {
       await this._redisService.addFCM({ userId: userExist._id, FCMToken: fcm });
       const tokens = await this._redisService.getFCM(userExist._id);
       await this._notificationService.sendNotifications({
         tokens: tokens!,
-        data: {title: `hi ${userExist.firstName}`, body: `new login at ${ new Date()}`}
-      })
+        data: {
+          title: `hi ${userExist.firstName}`,
+          body: `new login at ${new Date()}`,
+        },
+      });
     }
     successResponse({
       res,
@@ -232,7 +247,9 @@ class UserService {
     });
   };
 
-
+  // -------------------------------------------------------------
+  // Forget Password
+  // -------------------------------------------------------------
   forgetPassword = async (req: Request, res: Response, next: NextFunction) => {
     const { email }: ResendOtpDTO = req.body;
     const userExist = await this._userModel.findOne({ filter: { email } });
@@ -260,6 +277,9 @@ class UserService {
     });
   };
 
+  // -------------------------------------------------------------
+  // Reset Password
+  // -------------------------------------------------------------
   resetPassword = async (req: Request, res: Response, next: NextFunction) => {
     const { email, otp, password }: ResetPasswordDTO = req.body;
     const otpExist = await this._redisService.getValue(
@@ -295,7 +315,9 @@ class UserService {
     successResponse({ res, message: "Password has been reset successfully" });
   };
 
-
+  // -------------------------------------------------------------
+  // Update Password
+  // -------------------------------------------------------------
   updatePassword = async (req: Request, res: Response, next: NextFunction) => {
     const { oldPassword, newPassword } = req.body;
     if (!Compare({ plainText: oldPassword, cipherText: req.user.password })) {
@@ -310,11 +332,15 @@ class UserService {
     successResponse({ res, message: "Password has been reset successfully" });
   };
 
- 
+  // -------------------------------------------------------------
+  // Upload Image
+  // -------------------------------------------------------------
   uploadImage = async (req: Request, res: Response, next: NextFunction) => {
-
-
-
+    // const urls = await this._s3Service.uploadFiles({
+    //   files: req.files as Express.Multer.File[],
+    //   path: "users/many",
+    //   isLarge: true
+    // });
     const { fileName, ContentType } = req.body;
     const { url, Key } = await this._s3Service.createPreSignedUrl({
       fileName,
@@ -327,6 +353,34 @@ class UserService {
     });
     successResponse({ res, data: { Key, url } });
   };
+
+  // -------------------------------------------------------------
+  // Forget Password
+  // -------------------------------------------------------------
+  getProfile = async (req: Request, res: Response, next: NextFunction) => {
+    const user = await this._userModel.findOne({
+      filter: { _id: req.user._id as Types.ObjectId },
+      options: { populate: [{ path: "friends" }] },
+    });
+    successResponse({ res, data: { user } });
+  };
+
+  addFriends = async (req: Request, res: Response, next: NextFunction) => {
+    const { friendId } = req.body;
+    const friend = await this._userModel.findOne({
+      filter: { _id: friendId as Types.ObjectId },
+    });
+    if (!friend) throw new AppError("Friend not found", 404);
+    await this._userModel.findOneAndUpdate({
+      filter: { _id: req.user._id as Types.ObjectId },
+      update: { $addToSet: { friends: friendId as Types.ObjectId } },
+    });
+    await this._userModel.findOneAndUpdate({
+      filter: { _id: friendId as Types.ObjectId },
+      update: { $addToSet: { friends: req.user._id as Types.ObjectId } },
+    });
+    successResponse({ res, message: "Friend added successfully" });
+  }
 }
 
 export default new UserService();

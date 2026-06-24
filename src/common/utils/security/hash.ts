@@ -16,7 +16,7 @@ export const Compare = ({
   cipherText,
 }: {
   plainText: string;
-  cipherText: string | null;
+  cipherText: string ;
 }): boolean => {
   return compareSync(plainText, cipherText);
 };

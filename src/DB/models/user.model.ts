@@ -1,14 +1,9 @@
-import mongoose, { Types } from "mongoose";
+import mongoose, { HydratedDocument, Types } from "mongoose";
 import {
   GenderEnum,
   ProviderEnum,
   RoleEnum,
 } from "../../common/enum/user.enum";
-import { Hash } from "../../common/utils/security/hash";
-import { generateOTP, sendEmail } from "../../common/utils/email/send.email";
-import { eventEmitter } from "../../common/utils/email/email.events";
-import { EmailEnum } from "../../common/enum/email.enum";
-import { emailTemplate } from "../../common/utils/email/email.template";
 
 export interface IUser {
   _id: Types.ObjectId;
@@ -20,12 +15,14 @@ export interface IUser {
   age: number;
   phone?: string;
   address?: string;
+  profilePic?: string;
   gender?: GenderEnum;
   role?: RoleEnum;
   provider?: ProviderEnum;
   confirmed: boolean;
   createdAt: Date;
   updatedAt: Date;
+  friends?: [Types.ObjectId]
 }
 
 const userSchema = new mongoose.Schema<IUser>(
@@ -87,7 +84,9 @@ const userSchema = new mongoose.Schema<IUser>(
       enum: ProviderEnum,
       default: ProviderEnum.system,
     },
+    profilePic: String,
     confirmed: Boolean,
+    friends: [{ type: Types.ObjectId, ref:"User"}]
   },
   {
     timestamps: true,
@@ -105,6 +104,41 @@ userSchema
   .set(function (val: string) {
     this.set({ firstName: val.split(" ")[0], lastName: val.split(" ")[1] });
   });
+
+// userSchema.pre(
+//   "save",
+//   function (this: HydratedDocument<IUser> & { is_new: boolean }) {
+//     console.log("-------- Pre Save --------");
+//     this.is_new = this.isNew;
+//     if (this.isModified("password"))
+//       this.password = Hash({ plainText: this.password });
+//   },
+// );
+
+// userSchema.post("save", async function () {
+//   console.log("-------- Post Save --------");
+//   const that = this as HydratedDocument<IUser> & { is_new: boolean };
+//   if (that.is_new) {
+//     const otp = await generateOTP();
+//     eventEmitter.emit(EmailEnum.confirmEmail, async () => {
+//       await sendEmail({
+//         to: this.email,
+//         subject: "Email Confirmation",
+//         html: emailTemplate({ userName: this.userName, otp }),
+//       });
+//     });
+//   }
+// });
+
+// userSchema.pre("findOne", function () {
+//   const { paranoid, ...rest } = this.getQuery();
+
+//   if (paranoid == false) {
+//     this.setQuery({ ...rest });
+//   } else {
+//     this.setQuery({ ...rest, deletedAt: { $exists: false } });
+//   }
+// });
 
 const userModel =
   mongoose.models.User || mongoose.model<IUser>("User", userSchema);

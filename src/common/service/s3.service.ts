@@ -31,7 +31,9 @@ export class S3Service {
       },
     });
   }
-
+  // -------------------------------------------
+  //  Update
+  // -------------------------------------------
   async uploadFile({
     file,
     store_type = Store_Enum.memory,
@@ -102,10 +104,11 @@ export class S3Service {
     isLarge?: boolean;
   }) {
     let urls: string[] = [];
+    
     if (isLarge) {
       urls = await Promise.all(
         files.map((file) => {
-          return this.uploadFile({ file, store_type, path, ACL });
+          return this.uploadLargeFile({ file, store_type, path, ACL });
         }),
       );
     } else {
@@ -115,8 +118,11 @@ export class S3Service {
         }),
       );
     }
+    return urls;
   }
-
+  // -------------------------------------------
+  //  Create
+  // -------------------------------------------
   async createPreSignedUrl({
     path,
     fileName,
@@ -137,6 +143,35 @@ export class S3Service {
     const url = await getSignedUrl(this.client, command, { expiresIn });
     return { url, Key };
   }
+  // -------------------------------------------
+  //  Get
+  // -------------------------------------------
+  async getFile(Key: string) {
+    const command = new GetObjectCommand({
+      Bucket: AWS_BUCKET_NAME,
+      Key,
+    });
+    return await this.client.send(command);
+  }
+
+  async getPreSignedUrl({
+    path,
+    fileName,
+    expiresIn = 60,
+  }: {
+    path?: string;
+    fileName: string;
+    expiresIn?: number;
+  }) {
+    const Key = `social_media_app/${path}/${randomUUID()}__${fileName}`;
+    const command = new GetObjectCommand({
+      Bucket: AWS_BUCKET_NAME,
+      Key,
+    });
+    const url = await getSignedUrl(this.client, command, { expiresIn });
+    return url;
+  }
+
   async getFiles(folderName: string) {
     const command = new ListObjectsV2Command({
       Bucket: AWS_BUCKET_NAME,
@@ -144,7 +179,9 @@ export class S3Service {
     });
     return await this.client.send(command);
   }
- 
+  // -------------------------------------------
+  //  Delete File(s)
+  // -------------------------------------------
   async deleteFile(Key: string) {
     const command = new DeleteObjectCommand({
       Bucket: AWS_BUCKET_NAME,

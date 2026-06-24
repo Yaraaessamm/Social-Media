@@ -3,7 +3,7 @@ import type { Request, Response, NextFunction } from "express";
 export class AppError extends Error {
   constructor(
     public message: any,
-    public statusCode: number,
+    public statusCode?: number,
   ) {
     super(message);
     this.message = message;

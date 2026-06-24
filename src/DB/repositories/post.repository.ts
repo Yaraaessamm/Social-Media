@@ -1,9 +1,9 @@
 import type { Model } from "mongoose";
-import userModel, { IUser } from "../models/user.model";
+import postModel, { IPost } from "../models/post.model";
 import BaseRepository from "./base.repository";
 
-class PostRepository extends BaseRepository<IUser> {
-  constructor(protected readonly model: Model<IUser> = userModel) {
+class PostRepository extends BaseRepository<IPost> {
+  constructor(protected readonly model: Model<IPost> = postModel) {
     super(model);
   }
 

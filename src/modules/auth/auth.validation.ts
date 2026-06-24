@@ -1,6 +1,8 @@
 import * as z from "zod";
 import { GenderEnum } from "../../common/enum/user.enum";
 
+// Global Field
+// =====================
 export const general_rule = {
   emailField: z.string().email("Invalid email address"),
   otpField: z
@@ -10,6 +12,8 @@ export const general_rule = {
   passwordField: z.string().min(6).max(20),
 };
 
+// Main Field
+// =====================
 export const emailSchema = {
   body: z.object({ email: general_rule.emailField }),
 };
@@ -17,7 +21,7 @@ export const emailSchema = {
 export const loginSchema = {
   body: emailSchema.body.safeExtend({
     password: general_rule.passwordField,
-    fcm: z.string(),
+    fcm: z.string().optional(),
   }),
 };
 
